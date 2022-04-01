@@ -1,0 +1,6 @@
+__pycache__
+dataset
+*.log
+*.txt
+models/**/*.h5
+models/**/*.pkl

@@ -3,5 +3,3 @@ dataset
 *.log
 *.txt
 !requirements.txt
-models/**/*.h5
-models/**/*.pkl

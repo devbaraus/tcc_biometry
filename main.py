@@ -45,8 +45,8 @@ ANNOTATE_DIR = '/src/tcc/dataset'
 MODELS_DIR = '/src/tcc/models'
 DATASET_DIR = args.base or 'base_portuguese'
 
-ANNOTATE_DATASET = False
-SPLIT_DATESET = False
+ANNOTATE_DATASET = True
+SPLIT_DATESET = True
 SEGMENT_TEST = True
 SEGMENT_TRAIN = True
 SEGMENT_VALID = True
@@ -55,11 +55,11 @@ REPRESENT_TRAIN = True
 REPRESENT_VALID = True
 
 # MODEL ARCHITECTURE
-MODEL_DENSE_1 = 90
-MODEL_DROPOUT_1 = 0.5
-MODEL_DENSE_2 = 90
-MODEL_DROPOUT_2 = 0.5
-MODEL_DENSE_3 = 90
+MODEL_DENSE_1 = 60
+MODEL_DROPOUT_1 = 0
+MODEL_DENSE_2 = 0
+MODEL_DROPOUT_2 = 0
+MODEL_DENSE_3 = 0
 
 # MODEL TRAINING
 EPOCHS = 40
@@ -186,7 +186,11 @@ X_test_rep = se.transform(
 # %% BUILD MODEL
 model = build_perceptron(output_size=len(unique_labels),
                          shape_size=X_train_rep.shape,
-                         dense1=90,
+                         dense1=MODEL_DENSE_1,
+                         dropout1=MODEL_DROPOUT_1,
+                         dense2=MODEL_DENSE_2,
+                         dropout2=MODEL_DROPOUT_2,
+                         dense3=MODEL_DENSE_3,
                          learning_rate=LEARNING_RATE)
 
 # %% MODEL SUMMARY

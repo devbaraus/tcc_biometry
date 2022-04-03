@@ -14,10 +14,13 @@ SEED = 42
 
 
 def annotate_dataset(dataset_path: str, output_path: str):
-    """Prepare all audios into a .mat file.
+    """
+    It takes in a dataset path and outputs a metadata.csv file.
 
-    :param dataset_path: Path to dataset
-    :param output_path: Path to directory where all files and the metadata csv are going to be saved at
+    :param dataset_path: The path to the dataset folder
+    :type dataset_path: str
+    :param output_path: The path where the audio files will be saved
+    :type output_path: str
     """
 
     data = {
@@ -62,10 +65,16 @@ def annotate_dataset(dataset_path: str, output_path: str):
 
 
 def split_dataset(input_dataset: str, output_path: str, validation: bool = True):
-    """ Split the input dataset into train, test
-        :param input_dataset: Input folder where prepared dataset is
-        :param output_path: Where all subsequent folder are going to be created
-        :param validation: Prepare dataset into a validation subset
+    """
+    It splits the dataset into train, test and validation subsets, and copies the audio files to the
+    corresponding folders
+
+    :param input_dataset: The path to the dataset folder
+    :type input_dataset: str
+    :param output_path: the path where the dataset will be created
+    :type output_path: str
+    :param validation: If True, the validation set will be created, defaults to True
+    :type validation: bool (optional)
     """
 
     df = pd.read_csv(f'{input_dataset}/metadata.csv')

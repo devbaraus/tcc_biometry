@@ -21,6 +21,18 @@ from utils import merge_dicts
 
 def augment_signal(signal: np.array, sample_rate: int, transformations: list, augment_size: int):
     """
+    Given a signal, sample rate, and a list of transformations, augment_signal() will apply the
+    transformations to the signal and return a list of augmented signals
+
+    :param signal: The signal to be augmented
+    :type signal: np.array
+    :param sample_rate: int
+    :type sample_rate: int
+    :param transformations: list
+    :type transformations: list
+    :param augment_size: The number of augmented samples to generate
+    :type augment_size: int
+    :return: A list of augmented signals.
     """
     augment_composition = am.Compose(transformations)
 
@@ -35,8 +47,17 @@ def augment_signal(signal: np.array, sample_rate: int, transformations: list, au
     return augmented_signals
 
 
-def represent_signal(signal: np.array, sample_rate: int, plot: bool = False, **mfcc_params):
+def represent_signal(signal: list, sample_rate: int, plot: bool = False, **mfcc_params):
     """
+    Computes the MFCCs of a signal
+
+    :param signal: The input signal from which to compute features. Should be an N*1 array
+    :type signal: np.array
+    :param sample_rate: The sample rate of the audio file
+    :type sample_rate: int
+    :param plot: If True, plots the MFCC as an image, defaults to False
+    :type plot: bool (optional)
+    :return: The MFCCs of the signal.
     """
 
     mfcc = []
@@ -69,9 +90,22 @@ def represent_signal(signal: np.array, sample_rate: int, plot: bool = False, **m
     return mfcc
 
 
-def segment_signal(signal: np.array, sample_rate: int, segment_length: int, overlap_size: float = 0, plot=False):
+def segment_signal(signal: list, sample_rate: int, segment_length: int, overlap_size: float = 0, plot=False):
     """
+    It takes a signal and splits it into segments
+
+    :param signal: the audio signal to be segmented
+    :type signal: np.array
+    :param sample_rate: The sample rate of the audio file
+    :type sample_rate: int
+    :param segment_length: the length of the segments in seconds
+    :type segment_length: int
+    :param overlap_size: The amount of overlap between segments, defaults to 0
+    :type overlap_size: float (optional)
+    :param plot: If True, the segmented audio will be plotted, defaults to False (optional)
+    :return: A list of segments.
     """
+
     segments = []
     seg_positon = []
 
@@ -131,6 +165,7 @@ def segment_dataset(input_dir: str,
                     augment_size: int = 0,
                     overlap_size: float = 0.0,
                     segment_length: int = 1):
+
     df = pd.read_csv(f'{input_dir}/metadata.csv')
 
     base_dict = {

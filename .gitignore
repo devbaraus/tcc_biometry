@@ -2,4 +2,6 @@ __pycache__
 dataset
 *.log
 *.txt
+.env
+backlog
 !requirements.txt

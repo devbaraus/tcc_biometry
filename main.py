@@ -21,6 +21,9 @@ from train import build_perceptron, train_model
 
 parser = argparse.ArgumentParser(description='Arguments algo')
 
+parser.add_argument('--ip', type=str, action='store', dest='ip',
+                    required=False, help='IP', default=None)
+
 parser.add_argument('-c', type=int, action='store', dest='coeff', required=False, help='Coeficientes',
                     default=None)
 
@@ -37,7 +40,7 @@ parser.add_argument('-b', type=str, action='store', dest='base', required=False,
                     default=None)
 
 
-args = parser.parse_args()
+args, _ = parser.parse_known_args()
 
 # %%
 BASE_DATASETS = '/src/datasets'
@@ -45,14 +48,14 @@ ANNOTATE_DIR = '/src/tcc/dataset'
 MODELS_DIR = '/src/tcc/models'
 DATASET_DIR = args.base or 'base_portuguese'
 
-ANNOTATE_DATASET = True
-SPLIT_DATESET = True
-SEGMENT_TEST = True
-SEGMENT_TRAIN = True
-SEGMENT_VALID = True
-REPRESENT_TEST = True
-REPRESENT_TRAIN = True
-REPRESENT_VALID = True
+ANNOTATE_DATASET = False
+SPLIT_DATESET = False
+SEGMENT_TEST = False
+SEGMENT_TRAIN = False
+SEGMENT_VALID = False
+REPRESENT_TEST = False
+REPRESENT_TRAIN = False
+REPRESENT_VALID = False
 
 # MODEL ARCHITECTURE
 MODEL_DENSE_1 = 60
@@ -68,6 +71,7 @@ PATIENCE = 5
 LEARNING_RATE = 0.0001
 
 # SEGMENTATION && REPRESENTATION
+SAMPLE_RATE = 24000
 SEGMENT_LENGTH = args.segment or 26
 OVERLAP_SIZE = args.overlap or 0.0
 AUGMENT_SIZE = args.augmentation or 30
@@ -78,8 +82,10 @@ MFCC_HOP_LENGTH = 512
 # %%
 if ANNOTATE_DATASET:
     annotate_dataset(f'{BASE_DATASETS}/{DATASET_DIR}',
-                     f'{ANNOTATE_DIR}/{DATASET_DIR}')
+                     f'{ANNOTATE_DIR}/{DATASET_DIR}',
+                     SAMPLE_RATE)
 
+# %%
 if SPLIT_DATESET:
     split_dataset(f'{ANNOTATE_DIR}/{DATASET_DIR}',
                   f'{ANNOTATE_DIR}/{DATASET_DIR}',
@@ -100,9 +106,11 @@ TRAIN_TRANSFORM = [
 ]
 
 # %%
+BASE_DIR = f'{ANNOTATE_DIR}/{DATASET_DIR}/SEG_{SEGMENT_LENGTH}_OVERLAP_{int(OVERLAP_SIZE*100)}'
+
 if SEGMENT_TEST:
     segment_dataset(f'{ANNOTATE_DIR}/{DATASET_DIR}/test',
-                    f'{ANNOTATE_DIR}/{DATASET_DIR}/SEG_{SEGMENT_LENGTH}/test',
+                    f'{BASE_DIR}/test',
                     base_trans=BASE_TRANSFORM,
                     overlap_size=OVERLAP_SIZE,
                     segment_length=SEGMENT_LENGTH)
@@ -110,7 +118,7 @@ if SEGMENT_TEST:
 # %%
 if SEGMENT_VALID:
     segment_dataset(f'{ANNOTATE_DIR}/{DATASET_DIR}/valid',
-                    f'{ANNOTATE_DIR}/{DATASET_DIR}/SEG_{SEGMENT_LENGTH}/valid',
+                    f'{BASE_DIR}/valid',
                     base_trans=BASE_TRANSFORM,
                     overlap_size=OVERLAP_SIZE,
                     segment_length=SEGMENT_LENGTH)
@@ -118,7 +126,7 @@ if SEGMENT_VALID:
 # %%
 if SEGMENT_TRAIN:
     segment_dataset(f'{ANNOTATE_DIR}/{DATASET_DIR}/train',
-                    f'{ANNOTATE_DIR}/{DATASET_DIR}/SEG_{SEGMENT_LENGTH}/train',
+                    f'{BASE_DIR}/train',
                     base_trans=BASE_TRANSFORM,
                     extra_trans=TRAIN_TRANSFORM,
                     overlap_size=OVERLAP_SIZE,
@@ -127,22 +135,22 @@ if SEGMENT_TRAIN:
 
 # %% REPRESENTATION
 if REPRESENT_TEST:
-    mat_dict_test = represent_dataset(f'{ANNOTATE_DIR}/{DATASET_DIR}/SEG_{SEGMENT_LENGTH}/test',
-                                      f'{ANNOTATE_DIR}/{DATASET_DIR}/SEG_{SEGMENT_LENGTH}/MFCC_{MFCC_COEFF}/test',
+    mat_dict_test = represent_dataset(f'{BASE_DIR}/test',
+                                      f'{BASE_DIR}/MFCC_{MFCC_COEFF}/test',
                                       n_mfcc=MFCC_COEFF,
                                       n_fft=MFCC_N_FFT,
                                       hop_length=MFCC_HOP_LENGTH)
 # %%
 if REPRESENT_VALID:
-    mat_dict_valid = represent_dataset(f'{ANNOTATE_DIR}/{DATASET_DIR}/SEG_{SEGMENT_LENGTH}/valid',
-                                       f'{ANNOTATE_DIR}/{DATASET_DIR}/SEG_{SEGMENT_LENGTH}/MFCC_{MFCC_COEFF}/valid',
+    mat_dict_valid = represent_dataset(f'{BASE_DIR}/valid',
+                                       f'{BASE_DIR}/MFCC_{MFCC_COEFF}/valid',
                                        n_mfcc=MFCC_COEFF,
                                        n_fft=MFCC_N_FFT,
                                        hop_length=MFCC_HOP_LENGTH)
 # %%
 if REPRESENT_TRAIN:
-    mat_dict_train = represent_dataset(f'{ANNOTATE_DIR}/{DATASET_DIR}/SEG_{SEGMENT_LENGTH}/train',
-                                       f'{ANNOTATE_DIR}/{DATASET_DIR}/SEG_{SEGMENT_LENGTH}/MFCC_{MFCC_COEFF}/train',
+    mat_dict_train = represent_dataset(f'{BASE_DIR}/train',
+                                       f'{BASE_DIR}/MFCC_{MFCC_COEFF}/train',
                                        n_mfcc=MFCC_COEFF,
                                        n_fft=MFCC_N_FFT,
                                        hop_length=MFCC_HOP_LENGTH)
@@ -152,16 +160,16 @@ if REPRESENT_TRAIN:
 # %% LOAD REPRESENTATION
 if not REPRESENT_TEST:
     mat_dict_test = load_mat_representation(
-        f'{ANNOTATE_DIR}/{DATASET_DIR}/SEG_{SEGMENT_LENGTH}/MFCC_{MFCC_COEFF}/test/representation.mat')
+        f'{BASE_DIR}/MFCC_{MFCC_COEFF}/test/representation.mat')
 
 
 if not REPRESENT_TRAIN:
     mat_dict_train = load_mat_representation(
-        f'{ANNOTATE_DIR}/{DATASET_DIR}/SEG_{SEGMENT_LENGTH}/MFCC_{MFCC_COEFF}/train/representation.mat')
+        f'{BASE_DIR}/MFCC_{MFCC_COEFF}/train/representation.mat')
 
 if not REPRESENT_VALID:
     mat_dict_valid = load_mat_representation(
-        f'{ANNOTATE_DIR}/{DATASET_DIR}/SEG_{SEGMENT_LENGTH}/MFCC_{MFCC_COEFF}/valid/representation.mat')
+        f'{BASE_DIR}/MFCC_{MFCC_COEFF}/valid/representation.mat')
 
 # %% NP.ARRAY
 unique_labels = list(set(mat_dict_train['label']))
@@ -217,7 +225,7 @@ test_loss, test_acc = model.evaluate(X_test_rep,
 y_pred = model.predict(X_test_rep)
 y_pred = np.argmax(y_pred, axis=1)
 
-confusion = tf.math.confusion_matrix(y_test, y_pred)
+confusion = tf.math.confusion_matrix(y_pred, y_test)
 
 # %% SAVING PROCESS
 timestamp = int(time.time())
@@ -248,6 +256,7 @@ overview = {
     'classes': len(unique_labels),
 
     'segment_length': SEGMENT_LENGTH,
+    'sample_rate': SAMPLE_RATE,
     'augment_size': AUGMENT_SIZE,
     'overlap_size': OVERLAP_SIZE,
 
@@ -276,11 +285,15 @@ overview = {
 
     'representation': {
         'name': 'MFCC',
-        'mfcc_coeff': MFCC_COEFF,
-        'mfcc_n_fft': MFCC_N_FFT,
-        'mfcc_hop_length': MFCC_HOP_LENGTH,
+        'n_mfcc': MFCC_COEFF,
+        'n_fft': MFCC_N_FFT,
+        'hop_length': MFCC_HOP_LENGTH,
     },
+
+    'classes': {
+        mat_dict_test['mapping'][index]: mat_dict_test['label'][index] for index, _ in enumerate(mat_dict_test['mapping'])}
 }
+
 
 with open(f'{save_foldername}/overview.json', 'w') as f:
     f.write(json.dumps(overview))

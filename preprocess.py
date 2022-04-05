@@ -21,16 +21,16 @@ from utils import merge_dicts
 
 def augment_signal(signal: np.array, sample_rate: int, transformations: list, augment_size: int):
     """
-    Given a signal, sample rate, and a list of transformations, augment_signal() will apply the
-    transformations to the signal and return a list of augmented signals
+    Given a signal, sample rate, a list of transformations, and an augment size, 
+    this function will return a list of augmented signals
 
     :param signal: The signal to be augmented
     :type signal: np.array
-    :param sample_rate: int
+    :param sample_rate: int, the sample rate of the signal
     :type sample_rate: int
-    :param transformations: list
+    :param transformations: list of transformations to be applied to the signal
     :type transformations: list
-    :param augment_size: The number of augmented samples to generate
+    :param augment_size: the number of augmented samples to generate
     :type augment_size: int
     :return: A list of augmented signals.
     """
@@ -300,3 +300,32 @@ def represent_dataset(input_dir, output_dir, **mfcc_params):
     sio.savemat(f'{output_dir}/representation.mat', mat_dict)
 
     return mat_dict
+
+
+def pipeline_signal(file_path, sample_rate, segment_length, transformations, **mfcc_params):
+    signal, rate = librosa.load(file_path,
+                                sr=sample_rate,
+                                mono=True)
+
+    augment_array = augment_signal(signal, rate, transformations, 1)
+
+    segments_array = []
+
+    representation_array = []
+
+    for audio in augment_array:
+        segments = segment_signal(audio,
+                                  rate,
+                                  segment_length)
+
+        segments_array.extend(segments)
+
+    for segment in segments_array:
+        audio_rep = represent_signal(segment,
+                                     sample_rate,
+                                     plot=False,
+                                     **mfcc_params)
+
+        representation_array.append(audio_rep)
+
+    return np.array(representation_array)

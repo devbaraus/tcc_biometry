@@ -53,7 +53,7 @@ def build_perceptron(output_size: int, shape_size, dense1=512, dropout1=0, dense
     return model
 
 
-def train_model(model, epochs, batch_size, patience, X_train, y_train, X_validation, y_validation):
+def train_model(model, epochs, batch_size, patience, X_train, y_train, X_validation, y_validation, verbose=2):
     """
     Train the model using the training data and the validation data
 
@@ -78,5 +78,6 @@ def train_model(model, epochs, batch_size, patience, X_train, y_train, X_validat
                         epochs=epochs,
                         batch_size=batch_size,
                         validation_data=(X_validation, y_validation),
-                        callbacks=[earlystop_callback])
+                        callbacks=[earlystop_callback],
+                        verbose=verbose)
     return history

@@ -2,6 +2,7 @@
 # %%
 import argparse
 import json
+import os
 import audiomentations as am
 import numpy as np
 from sklearn.metrics import confusion_matrix
@@ -16,7 +17,7 @@ from praudio import utils
 
 from dataset import split_dataset, annotate_dataset
 from loaders import load_mat_representation
-from plot import plot_confusion_matrix, plot_history
+from plot import plot_class_distribution, plot_confusion_matrix, plot_history
 from train import build_perceptron, train_model
 
 parser = argparse.ArgumentParser(description='Arguments algo')
@@ -46,19 +47,19 @@ args, _ = parser.parse_known_args()
 BASE_DATASETS = '/src/datasets'
 ANNOTATE_DIR = '/src/tcc/dataset'
 MODELS_DIR = '/src/tcc/models'
-DATASET_DIR = args.base or 'base_portuguese'
+DATASET_DIR = args.base or 'base_portuguese_20'
 
-ANNOTATE_DATASET = False
-SPLIT_DATESET = False
-SEGMENT_TEST = False
-SEGMENT_TRAIN = False
-SEGMENT_VALID = False
-REPRESENT_TEST = False
-REPRESENT_TRAIN = False
-REPRESENT_VALID = False
+ANNOTATE_DATASET = True
+SPLIT_DATESET = True
+SEGMENT_TEST = True
+SEGMENT_TRAIN = True
+SEGMENT_VALID = True
+REPRESENT_TEST = True
+REPRESENT_TRAIN = True
+REPRESENT_VALID = True
 
 # MODEL ARCHITECTURE
-MODEL_DENSE_1 = 90
+MODEL_DENSE_1 = 60
 MODEL_DROPOUT_1 = 0
 MODEL_DENSE_2 = 0
 MODEL_DROPOUT_2 = 0
@@ -70,26 +71,30 @@ BATCH_SIZE = 32
 PATIENCE = 5
 LEARNING_RATE = 0.0001
 
-# SEGMENTATION && REPRESENTATION
+# SEGMENTATION
 SAMPLE_RATE = 24000
-SEGMENT_LENGTH = args.segment or 26
+SEGMENT_LENGTH = args.segment or 2
 OVERLAP_SIZE = args.overlap or 0.0
 AUGMENT_SIZE = args.augmentation or 30
+
+# REPRESENTATION
 MFCC_COEFF = args.coeff or 40
 MFCC_N_FFT = 2048
 MFCC_HOP_LENGTH = 512
 
 # %%
-if ANNOTATE_DATASET:
+if ANNOTATE_DATASET and not os.path.exists(f'{ANNOTATE_DIR}/{DATASET_DIR}'):
     annotate_dataset(f'{BASE_DATASETS}/{DATASET_DIR}',
                      f'{ANNOTATE_DIR}/{DATASET_DIR}',
-                     SAMPLE_RATE)
+                     SAMPLE_RATE,
+                     plot_distribution=True)
 
 # %%
-if SPLIT_DATESET:
+if SPLIT_DATESET and not os.path.exists(f'{ANNOTATE_DIR}/{DATASET_DIR}/train'):
     split_dataset(f'{ANNOTATE_DIR}/{DATASET_DIR}',
                   f'{ANNOTATE_DIR}/{DATASET_DIR}',
-                  validation=True)
+                  validation=True,
+                  plot_distribution=True)
 
 # %%
 BASE_TRANSFORM = [
@@ -106,49 +111,52 @@ TRAIN_TRANSFORM = [
 ]
 
 # %%
-BASE_DIR = f'{ANNOTATE_DIR}/{DATASET_DIR}/SEG_{SEGMENT_LENGTH}_OVERLAP_{int(OVERLAP_SIZE*100)}'
+BASE_DIR = f'{ANNOTATE_DIR}/{DATASET_DIR}/SEG_{SEGMENT_LENGTH}_OVERLAP_{int(OVERLAP_SIZE*100)}_AUG_{AUGMENT_SIZE}'
 
-if SEGMENT_TEST:
+if SEGMENT_TEST and not os.path.exists(f'{BASE_DIR}/test'):
     segment_dataset(f'{ANNOTATE_DIR}/{DATASET_DIR}/test',
                     f'{BASE_DIR}/test',
                     base_trans=BASE_TRANSFORM,
                     overlap_size=OVERLAP_SIZE,
-                    segment_length=SEGMENT_LENGTH)
+                    segment_length=SEGMENT_LENGTH,
+                    plot_distribution=True)
 
 # %%
-if SEGMENT_VALID:
+if SEGMENT_VALID and not os.path.exists(f'{BASE_DIR}/valid'):
     segment_dataset(f'{ANNOTATE_DIR}/{DATASET_DIR}/valid',
                     f'{BASE_DIR}/valid',
                     base_trans=BASE_TRANSFORM,
                     overlap_size=OVERLAP_SIZE,
-                    segment_length=SEGMENT_LENGTH)
+                    segment_length=SEGMENT_LENGTH,
+                    plot_distribution=True)
 
 # %%
-if SEGMENT_TRAIN:
+if SEGMENT_TRAIN and not os.path.exists(f'{BASE_DIR}/train'):
     segment_dataset(f'{ANNOTATE_DIR}/{DATASET_DIR}/train',
                     f'{BASE_DIR}/train',
                     base_trans=BASE_TRANSFORM,
                     extra_trans=TRAIN_TRANSFORM,
                     overlap_size=OVERLAP_SIZE,
                     augment_size=AUGMENT_SIZE,
-                    segment_length=SEGMENT_LENGTH)
+                    segment_length=SEGMENT_LENGTH,
+                    plot_distribution=True)
 
 # %% REPRESENTATION
-if REPRESENT_TEST:
+if REPRESENT_TEST and not os.path.exists(f'{BASE_DIR}/MFCC_{MFCC_COEFF}/test'):
     mat_dict_test = represent_dataset(f'{BASE_DIR}/test',
                                       f'{BASE_DIR}/MFCC_{MFCC_COEFF}/test',
                                       n_mfcc=MFCC_COEFF,
                                       n_fft=MFCC_N_FFT,
                                       hop_length=MFCC_HOP_LENGTH)
 # %%
-if REPRESENT_VALID:
+if REPRESENT_VALID and not os.path.exists(f'{BASE_DIR}/MFCC_{MFCC_COEFF}/valid'):
     mat_dict_valid = represent_dataset(f'{BASE_DIR}/valid',
                                        f'{BASE_DIR}/MFCC_{MFCC_COEFF}/valid',
                                        n_mfcc=MFCC_COEFF,
                                        n_fft=MFCC_N_FFT,
                                        hop_length=MFCC_HOP_LENGTH)
 # %%
-if REPRESENT_TRAIN:
+if REPRESENT_TRAIN and not os.path.exists(f'{BASE_DIR}/MFCC_{MFCC_COEFF}/train'):
     mat_dict_train = represent_dataset(f'{BASE_DIR}/train',
                                        f'{BASE_DIR}/MFCC_{MFCC_COEFF}/train',
                                        n_mfcc=MFCC_COEFF,
@@ -156,18 +164,18 @@ if REPRESENT_TRAIN:
                                        hop_length=MFCC_HOP_LENGTH)
 
 # %%
-
+# exit()
 # %% LOAD REPRESENTATION
-if not REPRESENT_TEST:
+if not REPRESENT_TEST or os.path.exists(f'{BASE_DIR}/MFCC_{MFCC_COEFF}/test'):
     mat_dict_test = load_mat_representation(
         f'{BASE_DIR}/MFCC_{MFCC_COEFF}/test/representation.mat')
 
 
-if not REPRESENT_TRAIN:
+if not REPRESENT_TRAIN or os.path.exists(f'{BASE_DIR}/MFCC_{MFCC_COEFF}/train'):
     mat_dict_train = load_mat_representation(
         f'{BASE_DIR}/MFCC_{MFCC_COEFF}/train/representation.mat')
 
-if not REPRESENT_VALID:
+if not REPRESENT_VALID or os.path.exists(f'{BASE_DIR}/MFCC_{MFCC_COEFF}/valid'):
     mat_dict_valid = load_mat_representation(
         f'{BASE_DIR}/MFCC_{MFCC_COEFF}/valid/representation.mat')
 
@@ -203,7 +211,8 @@ model = build_perceptron(output_size=len(unique_labels),
 
 # %% MODEL SUMMARY
 model_arch = model.to_json()
-model.summary()
+# model.summary()
+# model.summary()
 
 # %% TRAIN MODEL
 history = train_model(model,
@@ -213,7 +222,8 @@ history = train_model(model,
                       X_train=X_train_rep,
                       y_train=y_train,
                       X_validation=X_valid_rep,
-                      y_validation=y_valid)
+                      y_validation=y_valid,
+                      verbose=0)
 
 
 # %%
@@ -230,7 +240,7 @@ confusion = tf.math.confusion_matrix(y_pred, y_test)
 # %% SAVING PROCESS
 timestamp = int(time.time())
 
-save_foldername = f'{MODELS_DIR}/{DATASET_DIR}/SEG_{SEGMENT_LENGTH}/MFCC_{MFCC_COEFF}/{timestamp}_{test_acc * 100}'
+save_foldername = f'{MODELS_DIR}/{DATASET_DIR}/SEG_{SEGMENT_LENGTH}_OVERLAP_{int(OVERLAP_SIZE*100)}_AUG_{AUGMENT_SIZE}/MFCC_{MFCC_COEFF}/D{MODEL_DENSE_1}_DO{MODEL_DROPOUT_1}_D{MODEL_DENSE_2}_DO{MODEL_DROPOUT_2}_D{MODEL_DENSE_3}/{timestamp}_{test_acc * 100}'
 
 utils.create_dir_hierarchy(save_foldername)
 
@@ -249,6 +259,22 @@ plot_history(history,
 plot_confusion_matrix(confusion.numpy(),
                       size=len(unique_labels),
                       save_path=f'{save_foldername}')
+
+test_labels, test_count = np.unique(y_test, return_counts=True)
+plot_class_distribution(test_labels, test_count,
+                        save_path=f'{save_foldername}',
+                        filename='test_distribution.jpg')
+
+valid_labels, valid_count = np.unique(y_valid, return_counts=True)
+plot_class_distribution(valid_labels, valid_count,
+                        save_path=f'{save_foldername}',
+                        filename='valid_distribution.jpg')
+
+train_labels, train_count = np.unique(y_train, return_counts=True)
+plot_class_distribution(train_labels, train_count,
+                        save_path=f'{save_foldername}',
+                        filename='train_distribution.jpg')
+
 
 # %%
 overview = {
@@ -291,9 +317,10 @@ overview = {
     },
 
     'classes': {
-        mat_dict_test['mapping'][index]: mat_dict_test['label'][index] for index, _ in enumerate(mat_dict_test['mapping'])}
+        str(mat_dict_test['mapping'][index]): int(mat_dict_test['label'][index]) for index, _ in enumerate(mat_dict_test['mapping'])
+    }
 }
 
-
+# %%
 with open(f'{save_foldername}/overview.json', 'w') as f:
     f.write(json.dumps(overview))

@@ -4,10 +4,12 @@ import shutil
 from joblib import Parallel, delayed
 
 import librosa
+import numpy as np
 import pandas as pd
 import scipy.io as sio
 from praudio import utils
 from sklearn.model_selection import train_test_split
+from plot import plot_class_distribution
 
 from utils import merge_dicts
 
@@ -17,7 +19,7 @@ SAMPLES_TO_CONSIDER = 22050  # 1 sec. of audio
 SEED = 42
 
 
-def annotate_dataset(dataset_path: str, output_path: str, sr: int = 24000):
+def annotate_dataset(dataset_path: str, output_path: str, sr: int = 24000, extract=[], plot_distribution=False):
     """
     It takes in a dataset path and outputs a metadata.csv file and a folder of audio files.
 
@@ -28,6 +30,8 @@ def annotate_dataset(dataset_path: str, output_path: str, sr: int = 24000):
     :param sample_rate: The sample rate of the audio files, defaults to 24000
     :type sample_rate: int (optional)
     """
+
+    extract = [str(k) for k in extract]
 
     base_data = {
         "mapping": [],
@@ -46,9 +50,11 @@ def annotate_dataset(dataset_path: str, output_path: str, sr: int = 24000):
 
         # ensure we're at sub-folder level
         if dirpath is not dataset_path:
+            if len(extract) and not dirpath.split("/")[-1] in extract:
+                return data
 
-            # save label (i.e., sub-folder name) in the mapping
             label = dirpath.split("/")[-1]
+            # save label (i.e., sub-folder name) in the mapping
             print("\nProcessing: '{}'".format(label))
 
             # process all audio files in sub-dir and store MFCCs
@@ -68,7 +74,6 @@ def annotate_dataset(dataset_path: str, output_path: str, sr: int = 24000):
 
                 sio.wavfile.write(
                     f'{output_path}/audio/{f}', sample_rate, signal)
-                print("{}: {}".format(file_path, i - 1))
 
         return data
 
@@ -77,11 +82,17 @@ def annotate_dataset(dataset_path: str, output_path: str, sr: int = 24000):
 
     data = merge_dicts(base_data, *dicts)
 
+    if plot_class_distribution:
+        labels, count = np.unique(data['label'], return_counts=True)
+
+        plot_class_distribution(labels,
+                                count, save_path=f'{output_path}')
+
     pd.DataFrame.from_dict(data).to_csv(f'{output_path}/metadata.csv',
                                         index=False)
 
 
-def annotate_inference(dataset_path: str, output_path: str, model_path: str, catalog_path: str):
+def annotate_inference(dataset_path: str, output_path: str, model_path: str, catalog_path: str, extract=[], plot_distribution=False):
     """
 
     :param dataset_path: the path to the dataset folder
@@ -95,6 +106,7 @@ def annotate_inference(dataset_path: str, output_path: str, model_path: str, cat
     :param sr: The sample rate of the audio files, defaults to 24000
     :type sr: int (optional)
     """
+    extract = [str(k) for k in extract]
 
     base_data = {
         "mapping": [],
@@ -115,7 +127,7 @@ def annotate_inference(dataset_path: str, output_path: str, model_path: str, cat
     inf_mapping = {}
 
     for _, row in df_catalog.iterrows():
-        if row['inference'] != -1:
+        if row['inference'] > 0:
             inf_mapping[row['inference']] = model_mapping[str(row['train'])]
 
     people = []
@@ -140,6 +152,8 @@ def annotate_inference(dataset_path: str, output_path: str, model_path: str, cat
         inf_keys = [str(k) for k in inf_mapping.keys()]
 
         if dirpath is not dataset_path and dirpath.split("/")[-1] in people and dirpath.split("/")[-1] in inf_keys:
+            if len(extract) and not dirpath.split("/")[-1] in extract:
+                return data
 
             # save label (i.e., sub-folder name) in the mapping
             mapping = int(dirpath.split("/")[-1])
@@ -164,7 +178,6 @@ def annotate_inference(dataset_path: str, output_path: str, model_path: str, cat
 
                 sio.wavfile.write(
                     f'{output_path}/audio/{f}', sample_rate, signal)
-                print("{}: {}".format(file_path, i - 1))
 
         return data
 
@@ -175,11 +188,17 @@ def annotate_inference(dataset_path: str, output_path: str, model_path: str, cat
 
     data = merge_dicts(base_data, *dicts)
 
+    if plot_class_distribution:
+        labels, count = np.unique(data['label'], return_counts=True)
+
+        plot_class_distribution(labels,
+                                count, save_path=f'{output_path}')
+
     pd.DataFrame.from_dict(data).to_csv(
         f'{output_path}/metadata.csv', index=False)
 
 
-def split_dataset(input_dataset: str, output_path: str, validation: bool = True):
+def split_dataset(input_dataset: str, output_path: str, validation: bool = True, plot_distribution=True):
     """
     It splits the dataset into train, test and validation subsets, and copies the audio files to the
     corresponding folders
@@ -225,9 +244,16 @@ def split_dataset(input_dataset: str, output_path: str, validation: bool = True)
         raise BaseException('All subsets need to contain the same label')
 
     for key, value in subsets.items():
+
         shutil.rmtree(f'{output_path}/{key}', ignore_errors=True)
 
         utils.create_dir_hierarchy(f'{output_path}/{key}/audio')
+
+        if plot_class_distribution:
+            labels, count = np.unique(value['label'], return_counts=True)
+
+            plot_class_distribution(labels,
+                                    count, save_path=f'{output_path}/{key}')
 
         df_subset = pd.DataFrame.from_dict(value)
         df_subset.to_csv(f'{output_path}/{key}/metadata.csv', index=False)

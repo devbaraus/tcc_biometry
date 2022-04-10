@@ -5,3 +5,5 @@ dataset
 .env
 backlog
 !requirements.txt
+models*/
+dataset/

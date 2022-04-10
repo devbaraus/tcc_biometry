@@ -1,4 +1,5 @@
 # %%
+import math
 import os
 import shutil
 import numpy as np
@@ -15,11 +16,13 @@ import pandas as pd
 import librosa
 from praudio import utils
 import scipy.io as sio
+import noisereduce as nr
 
 from utils import merge_dicts
+from plot import plot_class_distribution
 
 
-def augment_signal(signal: np.array, sample_rate: int, transformations: list, augment_size: int):
+def augment_signal(signal: np.array, sample_rate: int, transformations: list, augment_size: int = 1):
     """
     Given a signal, sample rate, a list of transformations, and an augment size, 
     this function will return a list of augmented signals
@@ -38,7 +41,9 @@ def augment_signal(signal: np.array, sample_rate: int, transformations: list, au
 
     augmented_signals = []
 
-    for i in range(augment_size):
+    for i in range(min(1, augment_size)):
+        noise_reduced_signal = nr.reduce_noise(y=signal, sr=sample_rate)
+
         augmented_signal = augment_composition(signal,
                                                sample_rate)
 
@@ -164,7 +169,8 @@ def segment_dataset(input_dir: str,
                     extra_trans: list = [],
                     augment_size: int = 0,
                     overlap_size: float = 0.0,
-                    segment_length: int = 1):
+                    segment_length: int = 1,
+                    plot_distribution: bool = False):
 
     df = pd.read_csv(f'{input_dir}/metadata.csv')
 
@@ -263,6 +269,12 @@ def segment_dataset(input_dir: str,
 
     df_dict = merge_dicts(base_dict, *dicts)
 
+    if plot_distribution:
+        labels, count = np.unique(df_dict['label'], return_counts=True)
+
+        plot_class_distribution([str(x) for x in labels],
+                                count, save_path=f'{output_dir}')
+
     pd.DataFrame.from_dict(df_dict).to_csv(f'{output_dir}/metadata.csv',
                                            index=False)
 
@@ -302,7 +314,7 @@ def represent_dataset(input_dir, output_dir, **mfcc_params):
     return mat_dict
 
 
-def pipeline_signal(file_path, sample_rate, segment_length, transformations, **mfcc_params):
+def pipeline_signal(file_path: str = '', sample_rate: int = 24000, segment_length: int = 1, overlap_size: float = 0, transformations: list = [], **mfcc_params):
     signal, rate = librosa.load(file_path,
                                 sr=sample_rate,
                                 mono=True)
@@ -316,7 +328,8 @@ def pipeline_signal(file_path, sample_rate, segment_length, transformations, **m
     for audio in augment_array:
         segments = segment_signal(audio,
                                   rate,
-                                  segment_length)
+                                  segment_length,
+                                  overlap_size)
 
         segments_array.extend(segments)
 
@@ -328,4 +341,4 @@ def pipeline_signal(file_path, sample_rate, segment_length, transformations, **m
 
         representation_array.append(audio_rep)
 
-    return np.array(representation_array)
+    return np.array(representation_array),  np.array(segments_array), np.array(augment_array)

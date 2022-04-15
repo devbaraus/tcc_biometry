@@ -3,7 +3,7 @@
 overlap=(0 0.5)
 coeff=(40 34 26 18)
 segment=(1 2 3)
-bases=(base_portuguese)
+bases=(base_portuguese_4)
 # bases=(base_portuguese_20)
 # bases=(base_portuguese_4 base_portuguese_20)
 

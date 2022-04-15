@@ -8,7 +8,7 @@ import seaborn as sns
 
 
 def plot_confusion_matrix(confusion_matrix, size, save_path=''):
-    fig, ax = plt.subplots(figsize=(size/2, size/2))
+    fig, ax = plt.subplots(figsize=(max(size/2, 16), max(size/2, 16)))
     ax.matshow(confusion_matrix, cmap=plt.cm.Blues, alpha=0.3)
 
     for i in range(confusion_matrix.shape[0]):

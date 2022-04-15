@@ -18,6 +18,7 @@ from dataset import annotate_dataset
 from preprocess import augment_signal, represent_dataset, represent_signal, segment_dataset, segment_signal, pipeline_signal
 from loaders import load_mat_representation
 
+
 # %%
 SAMPLE_RATE = 24000
 SEGMENT_LENGTH = 1
@@ -116,14 +117,14 @@ sig1, _ = librosa.load(
 
 noise_reduced = nr.reduce_noise(sig1, sr=SAMPLE_RATE)
 
-signals = augment_signal(sig1, SAMPLE_RATE, BASE_TRANSFORM)
+signals = augment_signal([sig1], SAMPLE_RATE, BASE_TRANSFORM)
 
 sio.wavfile.write('/src/tcc/base.wav', SAMPLE_RATE, sig1)
 sio.wavfile.write('/src/tcc/base_noise.wav', SAMPLE_RATE, noise_reduced)
 
 # %%
 all_files = []
-path = '/src/tcc/models/base_portuguese'
+path = '/src/tcc_netro/models/spotify_20'
 
 for root, dirs, files in os.walk(path):
     for file in files:
@@ -142,8 +143,8 @@ all_files.sort(reverse=True)
 dirs = []
 
 for (count, folder), files in groupby(all_files, itemgetter(0, 1)):
-    if folder.find("inference") != -1:
-        dirs.append(folder)
+    # if folder.find("inference") != -1:
+    dirs.append(folder)
 
     # for file in files:
     #     print('File:', file[2])
@@ -152,14 +153,14 @@ for (count, folder), files in groupby(all_files, itemgetter(0, 1)):
 
 # %%
 df_dict = {
-    'classes': [],
+    # 'classes': [],
     'segment_length': [],
     'sample_rate': [],
     'overlap_size': [],
     'augment_size': [],
     'n_mfcc': [],
-    'inf_micro': [],
-    'inf_macro': [],
+    # 'inf_micro': [],
+    # 'inf_macro': [],
     'test_loss': [],
     'test_acc': [],
     'valid_loss': [],
@@ -178,14 +179,14 @@ for f in dirs:
         f'{path}/{f}/overview.json', 'r').read()
     overview = json.loads(overview)
 
-    df_dict['classes'].append(len(overview['classes']))
+    # df_dict['classes'].append(len(overview['classes']))
     df_dict['sample_rate'].append(overview['sample_rate'])
     df_dict['segment_length'].append(overview['segment_length'])
     df_dict['overlap_size'].append(overview['overlap_size'])
     df_dict['augment_size'].append(overview['augment_size'])
     df_dict['n_mfcc'].append(overview['representation']['n_mfcc'])
-    df_dict['inf_micro'].append(format_float(overview['f1_micro']))
-    df_dict['inf_macro'].append(format_float(overview['f1_macro']))
+    # df_dict['inf_micro'].append(format_float(overview['f1_micro']))
+    # df_dict['inf_macro'].append(format_float(overview['f1_macro']))
     df_dict['test_loss'].append(
         format_float(overview['scores']['test_loss']))
     df_dict['test_acc'].append(
